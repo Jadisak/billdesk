@@ -1,5 +1,5 @@
 /* Service Worker (เฉพาะเวอร์ชัน PWA) — แคชไฟล์ทั้งหมดไว้ในเครื่อง ใช้งานออฟไลน์ได้ */
-const CACHE = 'billdesk-v1.0.2';
+const CACHE = 'billdesk-v1.0.3';
 const ASSETS = [
   './', './index.html', './manifest.webmanifest',
   './css/fonts.css', './css/app.css', './css/document.css', './css/print.css',
