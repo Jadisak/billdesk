@@ -885,6 +885,7 @@
             </select>
             <button class="btn" data-act="print">🖨 พิมพ์</button>
             ${d.type === 'DO' ? `<button class="btn" data-act="send-label-doc" data-id="${d.id}">📦 ใบปะหน้า</button>` : ''}
+            <button class="btn" data-act="image">🖼 บันทึกเป็นรูปภาพ</button>
             <button class="btn primary" data-act="pdf">📄 บันทึกเป็น PDF</button>
           </div>
         </div>
@@ -906,6 +907,33 @@
       document.title = name;
       toast('เลือกเครื่องพิมพ์เป็น "Save as PDF" (บันทึกเป็น PDF)');
       setTimeout(() => { window.print(); document.title = old; }, 300);
+    }
+  }
+
+  // บันทึกเป็นรูปภาพ PNG/JPG (1 หน้า = 1 ไฟล์) — ใช้ได้ในโปรแกรมบนเครื่อง (Electron)
+  async function saveImage() {
+    const d = state.docs.find(x => x.id === state.previewId);
+    const name = `${d.docNo}_${(d.customer.name || '').trim()}`;
+    if (!desktop || !desktop.saveImage) {
+      toast('การบันทึกเป็นรูปภาพใช้ได้ในโปรแกรม BillDesk บนเครื่อง (เวอร์ชันเว็บให้ใช้ PDF แทน)', true);
+      return;
+    }
+    document.documentElement.classList.add('img-export');
+    document.body.classList.add('img-export');
+    try {
+      if (document.fonts && document.fonts.ready) await document.fonts.ready;
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+      const rects = [...document.querySelectorAll('#printArea .sheet')].map(el => {
+        const b = el.getBoundingClientRect();
+        const x = Math.ceil(b.left + window.scrollX), y = Math.ceil(b.top + window.scrollY);
+        return { x, y, width: Math.floor(b.right + window.scrollX) - x, height: Math.floor(b.bottom + window.scrollY) - y };
+      });
+      const r = await desktop.saveImage(name, rects);
+      if (r.ok) toast(r.files.length > 1 ? `บันทึกรูปภาพแล้ว ${r.files.length} ไฟล์: ${r.filePath}` : 'บันทึกรูปภาพแล้ว: ' + r.filePath);
+      else if (!r.canceled) toast('บันทึกรูปภาพไม่สำเร็จ: ' + (r.error || ''), true);
+    } finally {
+      document.body.classList.remove('img-export');
+      document.documentElement.classList.remove('img-export');
     }
   }
 
@@ -1349,6 +1377,7 @@
       case 'back-list': show('list'); break;
       case 'print': window.print(); break;
       case 'pdf': savePDF(); break;
+      case 'image': saveImage(); break;
       case 'add-item': case 'item-del': case 'item-up': case 'item-down': editorAction(act, btn); break;
       case 'cust-edit': editCustomer(id); break;
       case 'cust-del':
