@@ -130,6 +130,54 @@ ipcMain.handle('pdf:save', async (event, suggestedName) => {
   return { ok: true, filePath };
 });
 
+// บันทึกเอกสารเป็นรูปภาพ (PNG / JPG) — 1 ไฟล์ต่อ 1 หน้า (.sheet)
+// rects = พิกัดของแต่ละหน้าในเอกสาร (หน่วย CSS px) ใช้ Chrome DevTools Protocol จับภาพเกินขอบจอได้
+ipcMain.handle('image:save', async (event, suggestedName, rects) => {
+  const wc = event.sender;
+  const safe = String(suggestedName || 'document').replace(/[\\/:*?"<>|]/g, '_');
+  const { canceled, filePath } = await dialog.showSaveDialog(BrowserWindow.fromWebContents(wc), {
+    title: 'บันทึกเป็นรูปภาพ',
+    defaultPath: path.join(app.getPath('documents'), safe + '.png'),
+    filters: [
+      { name: 'รูปภาพ PNG (คมชัด)', extensions: ['png'] },
+      { name: 'รูปภาพ JPG (ไฟล์เล็ก)', extensions: ['jpg', 'jpeg'] }
+    ]
+  });
+  if (canceled || !filePath) return { ok: false, canceled: true };
+  let ext = path.extname(filePath).toLowerCase();
+  if (!['.png', '.jpg', '.jpeg'].includes(ext)) ext = '.png';
+  const format = ext === '.png' ? 'png' : 'jpeg';
+  const base = path.join(path.dirname(filePath), path.basename(filePath, path.extname(filePath)));
+  const list = Array.isArray(rects) ? rects : [];
+  if (!list.length) return { ok: false, error: 'ไม่พบหน้าเอกสาร' };
+  const dbg = wc.debugger;
+  let attachedHere = false;
+  const files = [];
+  try {
+    if (!dbg.isAttached()) { dbg.attach('1.3'); attachedHere = true; }
+    for (let i = 0; i < list.length; i++) {
+      const r = list[i];
+      const params = {
+        format,
+        captureBeyondViewport: true,
+        fromSurface: true,
+        clip: { x: r.x, y: r.y, width: r.width, height: r.height, scale: 2 }
+      };
+      if (format === 'jpeg') params.quality = 92;
+      const res = await dbg.sendCommand('Page.captureScreenshot', params);
+      const out = list.length === 1 ? base + ext : `${base}_${i + 1}${ext}`;
+      fs.writeFileSync(out, Buffer.from(res.data, 'base64'));
+      files.push(out);
+    }
+  } catch (err) {
+    return { ok: false, error: err.message };
+  } finally {
+    if (attachedHere) { try { dbg.detach(); } catch (_) { /* ignore */ } }
+  }
+  if (files.length === 1) shell.openPath(files[0]); else shell.showItemInFolder(files[0]);
+  return { ok: true, filePath: files[0], files };
+});
+
 // สั่งพิมพ์ (เปิดหน้าต่างเลือกเครื่องพิมพ์ของระบบ)
 ipcMain.handle('print', async (event) => {
   return new Promise((resolve) => {

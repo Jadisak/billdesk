@@ -4,6 +4,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('desktop', {
   isElectron: true,
   savePDF: (name) => ipcRenderer.invoke('pdf:save', name),
+  saveImage: (name, rects) => ipcRenderer.invoke('image:save', name, rects),
   print: () => ipcRenderer.invoke('print'),
   autoBackup: (json) => ipcRenderer.invoke('backup:auto', json),
   openBackupFolder: () => ipcRenderer.invoke('backup:openFolder'),
