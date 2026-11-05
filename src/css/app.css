@@ -194,3 +194,10 @@ table.items .w-price { width: 120px; } table.items .w-disc { width: 150px; } tab
 @media (max-width: 700px) { .other-pay { grid-template-columns: 1fr; } }
 
 select[data-bind="payment.method"] { min-width: 150px; }
+
+/* ตอนบันทึกเป็นรูปภาพ: เอาเงาขอบกระดาษออก */
+.img-export .preview-stage .sheet { box-shadow: none !important; }
+.img-export .toast { display: none !important; }
+/* ซ่อน scrollbar ตอนจับภาพ — กันหน้าเอกสารเลื่อนไปทางขวาเมื่อขยายพื้นที่จับภาพ */
+html.img-export { scrollbar-width: none; }
+html.img-export::-webkit-scrollbar { display: none; }
