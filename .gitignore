@@ -3,6 +3,7 @@ dist/
 *.log
 .DS_Store
 Thumbs.db
+._*
 *.exe
 *.blockmap
 # ไฟล์สำรองข้อมูลจริงของผู้ใช้ — ห้าม commit
